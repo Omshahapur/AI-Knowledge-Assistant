@@ -1,0 +1,6 @@
+Django==6.1.1
+requests==2.34.2
+PyMuPDF==1.28.2
+qdrant-client==1.19.1
+gunicorn==23.0.0
+whitenoise==6.9.0
