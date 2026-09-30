@@ -1,10 +1,18 @@
 import requests
 
 
+# ============================================================
+# OLLAMA CONFIGURATION
+# ============================================================
+
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
 MODEL_NAME = "qwen2.5:3b"
 
+
+# ============================================================
+# SYSTEM PROMPT
+# ============================================================
 
 SYSTEM_PROMPT = """
 You are an intelligent and helpful AI assistant.
@@ -17,7 +25,7 @@ to properly explain the topic.
 Rules:
 
 - Answer the question directly.
-- Give a complete explanation rather than a very short response.
+- Give a complete explanation rather than a very short answer.
 - For simple questions, provide a useful explanation with important
   details and examples when appropriate.
 - For technical questions, explain the concept, purpose, working,
@@ -34,11 +42,14 @@ Rules:
 """
 
 
+# ============================================================
+# GENERATE NORMAL AI ANSWER
+# ============================================================
+
 def generate_answer(prompt: str) -> str:
 
     response = requests.post(
         OLLAMA_URL,
-
         json={
             "model": MODEL_NAME,
 
@@ -56,19 +67,13 @@ def generate_answer(prompt: str) -> str:
             "think": False,
 
             "options": {
-
-                # More detailed answers
                 "temperature": 0.2,
-
-                # Larger context window
                 "num_ctx": 8192,
-
-                # Allow longer answers
-                "num_predict": 700
-            }
+                "num_predict": 700,
+            },
         },
 
-        timeout=300
+        timeout=300,
     )
 
     response.raise_for_status()
@@ -82,8 +87,147 @@ def generate_answer(prompt: str) -> str:
 
     if not answer:
 
-        return (
-            "I could not generate an answer."
-        )
+        return "I could not generate an answer."
 
     return answer
+
+
+# ============================================================
+# GENERATE CHAT TITLE
+# ============================================================
+
+def generate_chat_title(question: str) -> str:
+    """
+    Generate a short and meaningful title for a new chat
+    based on the user's first question.
+    """
+
+    prompt = f"""
+Generate a short and meaningful title for a chat based on the
+user's first question.
+
+USER QUESTION:
+
+{question}
+
+Rules:
+
+- Return ONLY the title.
+- Do not use quotation marks.
+- Do not use emojis.
+- Keep it between 2 and 6 words.
+- Capture the main topic of the question.
+- Do not start with words like "Question", "Answer", or "Chat".
+- Do not add a period at the end.
+- Do not explain the title.
+- Do not include multiple title options.
+
+Examples:
+
+Question: Explain Python decorators with examples
+Title: Python Decorators Explained
+
+Question: How do I create a table in MySQL?
+Title: MySQL Table Creation
+
+Question: What is machine learning?
+Title: Machine Learning Basics
+
+Question: How does CNN work?
+Title: CNN Explained
+
+Question: Explain normalization in DBMS
+Title: DBMS Normalization
+
+Question: What are the technical skills in this resume?
+Title: Resume Technical Skills
+
+Now generate the title.
+"""
+
+    try:
+
+        response = requests.post(
+            OLLAMA_URL,
+
+            json={
+                "model": MODEL_NAME,
+
+                "system": (
+                    "You generate short, clear chat titles. "
+                    "Return only the title."
+                ),
+
+                "prompt": (
+                    "/no_think\n"
+                    + prompt
+                ),
+
+                "stream": False,
+
+                "think": False,
+
+                "options": {
+                    "temperature": 0.3,
+                    "num_ctx": 2048,
+                    "num_predict": 20,
+                },
+            },
+
+            timeout=60,
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        title = data.get(
+            "response",
+            ""
+        ).strip()
+
+        # ------------------------------------------
+        # CLEAN TITLE
+        # ------------------------------------------
+
+        # Remove quotation marks
+        title = title.strip(
+            '"'
+        ).strip(
+            "'"
+        ).strip()
+
+        # Remove newlines and extra spaces
+        title = " ".join(
+            title.split()
+        )
+
+        # ------------------------------------------
+        # FALLBACK
+        # ------------------------------------------
+
+        if not title:
+
+            return "New Chat"
+
+        # ------------------------------------------
+        # LIMIT TITLE LENGTH
+        # ------------------------------------------
+
+        if len(title) > 60:
+
+            title = (
+                title[:60]
+                .rsplit(" ", 1)[0]
+            )
+
+        return title
+
+    except Exception as e:
+
+        print(
+            "CHAT TITLE GENERATION ERROR:",
+            str(e)
+        )
+
+        return "New Chat"

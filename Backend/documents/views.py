@@ -4,6 +4,7 @@ from .models import Chat, Document, Message
 
 from rag_service import answer_question
 from ingestion_service import ingest_pdf
+from ollama_services import generate_chat_title
 
 
 def home(request):
@@ -74,6 +75,16 @@ def home(request):
             )
 
         # ==========================================
+        # CHECK IF THIS IS THE FIRST QUESTION
+        # ==========================================
+
+        is_first_question = (
+            current_chat.messages.filter(
+                role="user"
+            ).count() == 0
+        )
+
+        # ==========================================
         # PROCESS PDF IF ONE WAS ATTACHED
         # ==========================================
 
@@ -130,17 +141,6 @@ def home(request):
                     "Chat ID:",
                     current_chat.id
                 )
-
-                # ----------------------------------
-                # IF THIS IS FIRST DOCUMENT,
-                # USE ITS NAME AS CHAT TITLE
-                # ----------------------------------
-
-                if current_chat.title == "New Chat":
-
-                    current_chat.title = document_title
-
-                    current_chat.save()
 
             except Exception as e:
 
@@ -213,6 +213,31 @@ def home(request):
                 )
 
                 # ----------------------------------
+                # GENERATE CHAT TITLE
+                # ----------------------------------
+
+                if is_first_question:
+
+                    print(
+                        "Generating chat title..."
+                    )
+
+                    generated_title = (
+                        generate_chat_title(question)
+                    )
+
+                    if generated_title:
+
+                        current_chat.title = (
+                            generated_title
+                        )
+
+                        print(
+                            "Generated chat title:",
+                            generated_title
+                        )
+
+                # ----------------------------------
                 # UPDATE CHAT
                 # ----------------------------------
 
@@ -240,8 +265,9 @@ def home(request):
 
         elif uploaded_file and not error:
 
-            # PDF was uploaded without a question.
-            # Keep the user inside the chat.
+            # ======================================
+            # PDF UPLOADED WITHOUT QUESTION
+            # ======================================
 
             current_chat.save()
 

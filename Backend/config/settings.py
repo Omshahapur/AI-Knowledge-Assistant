@@ -17,19 +17,25 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 # ============================================================
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+# Local development fallback.
+# Do NOT use this key for a production deployment.
 
-if not SECRET_KEY:
-    raise RuntimeError(
-        "DJANGO_SECRET_KEY environment variable is not set."
-    )
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-local-development-only-key-change-if-needed",
+)
 
 
 # ============================================================
 # DEBUG
 # ============================================================
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
+# Local development
+
+DEBUG = os.environ.get(
+    "DJANGO_DEBUG",
+    "True"
+).lower() == "true"
 
 
 # ============================================================
@@ -40,7 +46,7 @@ ALLOWED_HOSTS = [
     host.strip()
     for host in os.environ.get(
         "DJANGO_ALLOWED_HOSTS",
-        "127.0.0.1,localhost"
+        "127.0.0.1,localhost",
     ).split(",")
     if host.strip()
 ]
@@ -69,7 +75,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
 
-    # WhiteNoise serves static files in production
+    # Serves static files
     "whitenoise.middleware.WhiteNoiseMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -97,7 +103,7 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
 
         "DIRS": [
-            BASE_DIR.parent / "Frontend"
+            BASE_DIR.parent / "Frontend",
         ],
 
         "APP_DIRS": True,
@@ -187,7 +193,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
 # ============================================================
-# WHITE NOISE
+# STATIC FILE STORAGE
 # ============================================================
 
 STORAGES = {
@@ -216,22 +222,18 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 
-
 # ============================================================
-# PRODUCTION SECURITY
+# DEVELOPMENT SECURITY
 # ============================================================
 
-if not DEBUG:
+# The project runs locally using HTTP.
+# Secure cookies are therefore disabled during development.
 
-    SECURE_CONTENT_TYPE_NOSNIFF = True
+if DEBUG:
 
-    X_FRAME_OPTIONS = "DENY"
+    SESSION_COOKIE_SECURE = False
 
-    SECURE_REFERRER_POLICY = "same-origin"
-
-    SESSION_COOKIE_SECURE = True
-
-    CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = False
 
 
 # ============================================================
